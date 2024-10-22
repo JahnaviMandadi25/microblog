@@ -1,22 +1,38 @@
 pipeline {
     agent any
-    environment {
-        SONARQUBE_URL = 'http://localhost:9000' // adjust based on your setup
-        SONAR_TOKEN = credentials('sonar-token') // configure in Jenkins Credentials
-    }
+
     stages {
         stage('Build') {
             steps {
-                echo 'Building...'
+                sh 'echo Building the application...'
+
             }
         }
-        stage('SonarQube Scan') {
+
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Replace with your actual SonarQube scan command
-                    sh 'sonar-scanner -Dsonar.projectKey=my-app -Dsonar.sources=. -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONAR_TOKEN'
+                    // This is where the SonarQube analysis is triggered
+                    def scannerHome = tool 'SonarQube Scanner';
+                    withSonarQubeEnv('SonarQube') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
                 }
             }
+        }
+
+        // More stages like deploy and tests can go here
+    }
+
+    post {
+        always {
+            echo 'Cleaning up workspace...'
+            cleanWs()
+        }
+        failure {
+            mail to: 'mandadij@uwindsor.ca',
+                 subject: "Build failed in Jenkins: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                 body: "Something is wrong in ${env.JOB_NAME} #${env.BUILD_NUMBER}\nPlease check Jenkins for details."
         }
     }
 }
