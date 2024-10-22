@@ -2,6 +2,13 @@ pipeline {
     agent any
 
     stages {
+        stage('SCM') {
+            steps {
+                // Checking out the source code from SCM
+                checkout scm
+            }
+        }
+
         stage('Build') {
             steps {
                 sh 'echo Building the application...'
@@ -13,7 +20,7 @@ pipeline {
             steps {
                 script {
                     // Trigger SonarQube analysis
-                    def scannerHome = tool 'SonarQube Scanner'
+                    def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('SonarQube') {
                         sh "${scannerHome}/bin/sonar-scanner"
                     }
