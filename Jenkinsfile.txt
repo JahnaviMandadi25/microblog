@@ -17,12 +17,15 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
+            environment {
+                SONAR_TOKEN = 'sqp_628b9170394ec9f586f8934cd11ba1da99bd2c47'
+            }
             steps {
                 script {
                     // Trigger SonarQube analysis
-                    def scannerHome = tool 'SonarScanner'
+                    def scannerHome = tool 'SonarScanner'  // Use the correct SonarQube Scanner tool name
                     withSonarQubeEnv('SonarQube') {
-                        sh "${scannerHome}/bin/sonar-scanner"
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.login=${env.SONAR_TOKEN}"
                     }
                 }
             }
