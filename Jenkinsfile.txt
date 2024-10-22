@@ -5,15 +5,15 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'echo Building the application...'
-
+                // Add your build commands here
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // This is where the SonarQube analysis is triggered
-                    def scannerHome = tool 'SonarQube Scanner';
+                    // Trigger SonarQube analysis
+                    def scannerHome = tool 'SonarQube Scanner'
                     withSonarQubeEnv('SonarQube') {
                         sh "${scannerHome}/bin/sonar-scanner"
                     }
@@ -21,7 +21,19 @@ pipeline {
             }
         }
 
-        // More stages like deploy and tests can go here
+        stage('Deploy') {
+            steps {
+                sh 'echo Deploying the application...'
+                // Add your deployment commands here, e.g., Docker, file transfer, etc.
+            }
+        }
+
+        stage('Integration Tests') {
+            steps {
+                sh 'echo Running integration tests...'
+                // Add your Selenium or other integration test commands here
+            }
+        }
     }
 
     post {
