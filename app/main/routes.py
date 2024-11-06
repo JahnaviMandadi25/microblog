@@ -11,6 +11,7 @@ from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, \
 from app.models import User, Post, Message, Notification
 from app.translate import translate
 from app.main import bp
+import  re
 
 
 @bp.before_app_request
@@ -22,34 +23,54 @@ def before_request():
     g.locale = str(get_locale())
 
 
+def censor_text(text,banned_words):
+
+    pattern = re.compile(r'\b(' + '|'.join(banned_words) + r')\b', re.IGNORECASE)
+    matches = pattern.findall(text)
+    banned_word_count = len(matches)
+
+    censored_text = pattern.sub('***', text)
+
+    return censored_text, banned_word_count
+
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
     form = PostForm()
+    banned_words = ["badword1", "badword2", "badword3", "badword4", "badword5", "badword6", "badword7", "badword8"]
     if form.validate_on_submit():
+        censored_content,banned_word_count = censor_text(form.post.data, banned_words)
+
+        if banned_word_count > 5:
+            flash(_('Your post contains many inappropriate words. Please revise it.'), 'warning')
+            return redirect(url_for('main.index'))
+
+        total_banned_words = current_user.count_banned_words(banned_words) + banned_word_count
+        if total_banned_words > 10:
+            current_user.is_flagged = True
+            db.session.commit()
+            flash(_('Your account has been flagged for inappropriate content.'), 'danger')
         try:
-            language = detect(form.post.data)
+            language = detect(censored_content)
         except LangDetectException:
             language = ''
-        post = Post(body=form.post.data, author=current_user,
-                    language=language)
+
+        post = Post(body=censored_content, author=current_user, language=language)
         db.session.add(post)
         db.session.commit()
         flash(_('Your post is now live!'))
         return redirect(url_for('main.index'))
+
     page = request.args.get('page', 1, type=int)
     posts = db.paginate(current_user.following_posts(), page=page,
                         per_page=current_app.config['POSTS_PER_PAGE'],
                         error_out=False)
-    next_url = url_for('main.index', page=posts.next_num) \
-        if posts.has_next else None
-    prev_url = url_for('main.index', page=posts.prev_num) \
-        if posts.has_prev else None
+    next_url = url_for('main.index', page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('main.index', page=posts.prev_num) if posts.has_prev else None
     return render_template('index.html', title=_('Home'), form=form,
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url)
-
 
 @bp.route('/explore')
 @login_required

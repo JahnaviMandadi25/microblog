@@ -14,6 +14,7 @@ import redis
 import rq
 from app import db, login
 from app.search import add_to_index, remove_from_index, query_index
+import re
 
 
 class SearchableMixin:
@@ -127,6 +128,7 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
     notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
         back_populates='user')
     tasks: so.WriteOnlyMapped['Task'] = so.relationship(back_populates='user')
+    is_flagged = db.Column(db.Boolean, default=False)
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -136,6 +138,15 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def count_banned_words(self, banned_words):
+        banned_word_count = 0
+        pattern = re.compile(r'\b(' + '|'.join(banned_words) + r')\b', re.IGNORECASE)
+
+        for post in self.posts:
+            banned_word_count += len(pattern.findall(post.body))
+
+        return banned_word_count
 
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
