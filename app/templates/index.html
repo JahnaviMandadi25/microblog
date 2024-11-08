@@ -6,6 +6,11 @@
     {% if form %}
     {{ wtf.quick_form(form) }}
     {% endif %}
+    <form action="{{ url_for('main.upload') }}" method="post" style="display:inline;">
+        <button type="submit" class="btn btn-primary btn-sm">
+            {{ _('Upload') }}
+        </button>
+    </form>
     {% for post in posts %}
         {% include '_post.html' %}
     {% endfor %}

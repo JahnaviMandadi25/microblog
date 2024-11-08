@@ -1,7 +1,7 @@
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
-from wtforms.validators import ValidationError, DataRequired, Length
+from wtforms import StringField, SubmitField, TextAreaField,FileField
+from wtforms.validators import ValidationError, DataRequired, Length,InputRequired
 import sqlalchemy as sa
 from flask_babel import _, lazy_gettext as _l
 from app import db
@@ -51,3 +51,8 @@ class MessageForm(FlaskForm):
     message = TextAreaField(_l('Message'), validators=[
         DataRequired(), Length(min=1, max=140)])
     submit = SubmitField(_l('Submit'))
+
+
+class UploadFileForm(FlaskForm):
+    file = FileField("File", validators=[InputRequired()])
+    submit = SubmitField("Upload File")
