@@ -8,7 +8,7 @@ from langdetect import detect, LangDetectException
 from app import db
 from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, \
     MessageForm
-from app.models import User, Post, Message, Notification
+from app.models import User, Post, Message, Notification, Favorite
 from app.translate import translate
 from app.main import bp
 import  re
@@ -106,6 +106,19 @@ def unfavorite_post(post_id):
     db.session.commit()
     flash(_('Post removed from favorites.'), 'success')
     return redirect(url_for('main.index'))
+
+@bp.route('/user/<username>/favorites')
+@login_required
+def user_favorites(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    favorites_query = Post.query.join(Favorite, Favorite.post_id == Post.id) \
+                                .filter(Favorite.user_id == user.id) \
+                                .order_by(Post.timestamp.desc())
+    favorites = favorites_query.paginate(page=page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
+    next_url = url_for('main.user_favorites', username=user.username, page=favorites.next_num) if favorites.has_next else None
+    prev_url = url_for('main.user_favorites', username=user.username, page=favorites.prev_num) if favorites.has_prev else None
+    return render_template('user_favorites.html', user=user, posts=favorites.items, next_url=next_url, prev_url=prev_url)
 
 @bp.route('/explore')
 @login_required
