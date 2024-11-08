@@ -28,6 +28,15 @@
                                 '{{ g.locale }}');">{{ _('Translate') }}</a>
                 </span>
                 {% endif %}
+                {% if not current_user.is_favorite(post) %}
+                    <form action="{{ url_for('main.favorite_post', post_id=post.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-primary btn-sm">{{ _('Favorite') }}</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('main.unfavorite_post', post_id=post.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-secondary btn-sm">{{ _('Unfavorite') }}</button>
+                    </form>
+                {% endif %}
                 {% if post.author == current_user %}
                 <form action="{{ url_for('main.delete_post', post_id=post.id) }}" method="post" style="display:inline;">
                     <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('{{ _('Are you sure you want to delete this post?') }}')">

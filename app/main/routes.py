@@ -73,16 +73,38 @@ def index():
                            prev_url=prev_url)
 
 
-
 @bp.route('/delete_post/<int:post_id>', methods=['POST'])
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
     if post.author != current_user:
         abort(403)
-    db.session.delete(post)
+
+    if not post.favorited_by:
+        db.session.delete(post)
+    else:
+        post.deleted = True
+
     db.session.commit()
     flash(_('Post deleted.'), 'success')
+    return redirect(url_for('main.index'))
+
+@bp.route('/favorite_post/<int:post_id>', methods=['POST'])
+@login_required
+def favorite_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    current_user.add_favorite(post)
+    db.session.commit()
+    flash(_('Post added to favorites.'), 'success')
+    return redirect(url_for('main.index'))
+
+@bp.route('/unfavorite_post/<int:post_id>', methods=['POST'])
+@login_required
+def unfavorite_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    current_user.remove_favorite(post)
+    db.session.commit()
+    flash(_('Post removed from favorites.'), 'success')
     return redirect(url_for('main.index'))
 
 @bp.route('/explore')
