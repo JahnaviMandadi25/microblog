@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from flask import render_template, flash, redirect, url_for, request, g, \
-    current_app
+    current_app, abort
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 import sqlalchemy as sa
@@ -71,6 +71,19 @@ def index():
     return render_template('index.html', title=_('Home'), form=form,
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url)
+
+
+
+@bp.route('/delete_post/<int:post_id>', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+    db.session.delete(post)
+    db.session.commit()
+    flash(_('Post deleted.'), 'success')
+    return redirect(url_for('main.index'))
 
 @bp.route('/explore')
 @login_required
