@@ -14,6 +14,7 @@ import redis
 import rq
 from app import db, login
 from app.search import add_to_index, remove_from_index, query_index
+import re
 
 
 class SearchableMixin:
@@ -127,6 +128,25 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
     notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
         back_populates='user')
     tasks: so.WriteOnlyMapped['Task'] = so.relationship(back_populates='user')
+    is_flagged = db.Column(db.Boolean, default=False)
+    favorites = db.relationship('Favorite', backref='user', lazy='dynamic')
+
+    def add_favorite(self, post):
+        if not self.is_favorite(post):
+            fav = Favorite(user_id=self.id, post_id=post.id)
+            db.session.add(fav)
+
+    def remove_favorite(self, post):
+        fav = self.favorites.filter_by(post_id=post.id).first()
+        if fav:
+            db.session.delete(fav)
+
+    def is_favorite(self, post):
+        return self.favorites.filter_by(post_id=post.id).count() > 0
+
+    def favorite_posts(self):
+        return Post.query.join(Favorite, Favorite.post_id == Post.id) \
+                         .filter(Favorite.user_id == self.id)
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -136,6 +156,15 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def count_banned_words(self, banned_words):
+        banned_word_count = 0
+        pattern = re.compile(r'\b(' + '|'.join(banned_words) + r')\b', re.IGNORECASE)
+
+        for post in self.posts:
+            banned_word_count += len(pattern.findall(post.body))
+
+        return banned_word_count
 
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
@@ -298,6 +327,12 @@ class Post(SearchableMixin, db.Model):
 
     def __repr__(self):
         return '<Post {}>'.format(self.body)
+
+
+class Favorite(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), primary_key=True)
+    post = db.relationship("Post", backref="favorited_by")
 
 
 class Message(db.Model):

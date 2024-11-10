@@ -1,16 +1,7 @@
 {% extends "base.html" %}
-{% import "bootstrap_wtf.html" as wtf %}
 
 {% block content %}
-    <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
-    {% if form %}
-    {{ wtf.quick_form(form) }}
-    {% endif %}
-    <form action="{{ url_for('main.upload') }}" method="post" style="display:inline;">
-        <button type="submit" class="btn btn-primary btn-sm">
-            {{ _('Upload') }}
-        </button>
-    </form>
+    <h1>{{ _('Favorites for') }}: {{ user.username }}</h1>
     {% for post in posts %}
         {% include '_post.html' %}
     {% endfor %}

@@ -1,16 +1,19 @@
 from datetime import datetime, timezone
 from flask import render_template, flash, redirect, url_for, request, g, \
-    current_app
+    current_app, abort
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 import sqlalchemy as sa
 from langdetect import detect, LangDetectException
 from app import db
-from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, \
+from app.main.forms import EditProfileForm, EmptyForm, UploadFileForm, PostForm, SearchForm, \
     MessageForm
-from app.models import User, Post, Message, Notification
+from app.models import User, Post, Message, Notification, Favorite
 from app.translate import translate
 from app.main import bp
+import  re
+from werkzeug.utils import secure_filename
+import os
 
 
 @bp.before_app_request
@@ -22,34 +25,116 @@ def before_request():
     g.locale = str(get_locale())
 
 
+def censor_text(text,banned_words):
+
+    pattern = re.compile(r'\b(' + '|'.join(banned_words) + r')\b', re.IGNORECASE)
+    matches = pattern.findall(text)
+    banned_word_count = len(matches)
+
+    censored_text = pattern.sub('***', text)
+
+    return censored_text, banned_word_count
+
 @bp.route('/', methods=['GET', 'POST'])
 @bp.route('/index', methods=['GET', 'POST'])
 @login_required
 def index():
     form = PostForm()
+    banned_words = ["badword1", "badword2", "badword3", "badword4", "badword5", "badword6", "badword7", "badword8"]
     if form.validate_on_submit():
+        censored_content,banned_word_count = censor_text(form.post.data, banned_words)
+
+        if banned_word_count > 5:
+            flash(_('Your post contains many inappropriate words. Please revise it.'), 'warning')
+            return redirect(url_for('main.index'))
+
+        total_banned_words = current_user.count_banned_words(banned_words) + banned_word_count
+        if total_banned_words > 10:
+            current_user.is_flagged = True
+            db.session.commit()
+            flash(_('Your account has been flagged for inappropriate content.'), 'danger')
         try:
-            language = detect(form.post.data)
+            language = detect(censored_content)
         except LangDetectException:
             language = ''
-        post = Post(body=form.post.data, author=current_user,
-                    language=language)
+
+        post = Post(body=censored_content, author=current_user, language=language)
         db.session.add(post)
         db.session.commit()
         flash(_('Your post is now live!'))
         return redirect(url_for('main.index'))
+
     page = request.args.get('page', 1, type=int)
     posts = db.paginate(current_user.following_posts(), page=page,
                         per_page=current_app.config['POSTS_PER_PAGE'],
                         error_out=False)
-    next_url = url_for('main.index', page=posts.next_num) \
-        if posts.has_next else None
-    prev_url = url_for('main.index', page=posts.prev_num) \
-        if posts.has_prev else None
+    next_url = url_for('mai.index', page=posts.next_num) if posts.has_next else None
+    prev_url = url_for('main.index', page=posts.prev_num) if posts.has_prev else None
     return render_template('index.html', title=_('Home'), form=form,
                            posts=posts.items, next_url=next_url,
                            prev_url=prev_url)
 
+
+@bp.route('/delete_post/<int:post_id>', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.author != current_user:
+        abort(403)
+
+    if not post.favorited_by:
+        db.session.delete(post)
+    else:
+        post.deleted = True
+
+    db.session.commit()
+    flash(_('Post deleted.'), 'success')
+    return redirect(url_for('main.index'))
+
+@bp.route('/favorite_post/<int:post_id>', methods=['POST'])
+@login_required
+def favorite_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    current_user.add_favorite(post)
+    db.session.commit()
+    flash(_('Post added to favorites.'), 'success')
+    return redirect(url_for('main.index'))
+
+@bp.route('/unfavorite_post/<int:post_id>', methods=['POST'])
+@login_required
+def unfavorite_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    current_user.remove_favorite(post)
+    db.session.commit()
+    flash(_('Post removed from favorites.'), 'success')
+    return redirect(url_for('main.index'))
+
+@bp.route('/user/<username>/favorites')
+@login_required
+def user_favorites(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    page = request.args.get('page', 1, type=int)
+    favorites_query = Post.query.join(Favorite, Favorite.post_id == Post.id) \
+                                .filter(Favorite.user_id == user.id) \
+                                .order_by(Post.timestamp.desc())
+    favorites = favorites_query.paginate(page=page, per_page=current_app.config['POSTS_PER_PAGE'], error_out=False)
+    next_url = url_for('main.user_favorites', username=user.username, page=favorites.next_num) if favorites.has_next else None
+    prev_url = url_for('main.user_favorites', username=user.username, page=favorites.prev_num) if favorites.has_prev else None
+    return render_template('user_favorites.html', user=user, posts=favorites.items, next_url=next_url, prev_url=prev_url)
+
+
+@bp.route('/upload', methods=['GET', 'POST'])
+@login_required
+def upload():
+    form = UploadFileForm()
+    if form.validate_on_submit():
+        file = form.file.data # First grab the file
+        upload_folder = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../app/static/files')))
+
+        file_path = os.path.join(upload_folder, secure_filename(file.filename))
+        file.save(file_path)
+        return "File has been uploaded."
+    return render_template('upload.html',form = form)
 
 @bp.route('/explore')
 @login_required
