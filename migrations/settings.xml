@@ -1,0 +1,9 @@
+<settings>
+  <servers>
+    <server>
+      <id>sonar</id>
+      <username></username>
+      <password>sqp_0a65ca3fc9001dea1d10f9a6d35bbfb18e45d40f</password>
+    </server>
+  </servers>
+</settings>

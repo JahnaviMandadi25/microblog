@@ -3,9 +3,9 @@ node {
     checkout scm
   }
   stage('SonarQube Analysis') {
-    def mvn = tool 'MicroBlog';
+    def scannerHome = tool 'Microblog';
     withSonarQubeEnv() {
-      sh "${mvn}/bin/mvn clean verify sonar:sonar -Dsonar.projectKey=Microblog -Dsonar.projectName='Microblog'"
+      sh "${scannerHome}/bin/sonar-scanner"
     }
   }
 }
