@@ -19,6 +19,9 @@ class Config:
     ADMINS = ['your-email@example.com']
     LANGUAGES = ['en', 'es']
     MS_TRANSLATOR_KEY = os.environ.get('MS_TRANSLATOR_KEY')
+
+    #MS_TRANSLATOR_KEY = os.getenv('MS_TRANSLATOR_KEY', 'EJsu8PftnwWapqLkZ1imD8uBfjnZmXrUmpWKIxf1ChyKPMydDQ6DJQQJ99AKAC4f1cMXJ3w3AAAbACOG4DzI')  # Default value for testing
+    MS_TRANSLATOR_REGION = os.getenv('MS_TRANSLATOR_REGION', 'westus')
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
-    POSTS_PER_PAGE = 25
+    POSTS_PER_PAGE = 5

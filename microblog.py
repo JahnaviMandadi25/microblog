@@ -3,6 +3,7 @@ import sqlalchemy.orm as so
 from app import create_app, db
 from app.models import User, Post, Message, Notification, Task
 
+
 app = create_app()
 
 

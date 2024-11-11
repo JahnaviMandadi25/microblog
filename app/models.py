@@ -63,8 +63,10 @@ db.event.listen(db.session, 'after_commit', SearchableMixin.after_commit)
 class PaginatedAPIMixin(object):
     @staticmethod
     def to_collection_dict(query, page, per_page, endpoint, **kwargs):
-        resources = db.paginate(query, page=page, per_page=per_page,
+        resources = db.paginate(query, page=page, per_page=5,
                                 error_out=False)
+
+
         data = {
             'items': [item.to_dict() for item in resources.items],
             '_meta': {

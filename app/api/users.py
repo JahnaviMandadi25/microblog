@@ -17,7 +17,7 @@ def get_user(id):
 @token_auth.login_required
 def get_users():
     page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 10, type=int), 100)
+    per_page = min(request.args.get('per_page', 5, type=int), 5)
     return User.to_collection_dict(sa.select(User), page, per_page,
                                    'api.get_users')
 
@@ -27,7 +27,7 @@ def get_users():
 def get_followers(id):
     user = db.get_or_404(User, id)
     page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 10, type=int), 100)
+    per_page = min(request.args.get('per_page', 5, type=int), 5)
     return User.to_collection_dict(user.followers.select(), page, per_page,
                                    'api.get_followers', id=id)
 
@@ -37,7 +37,7 @@ def get_followers(id):
 def get_following(id):
     user = db.get_or_404(User, id)
     page = request.args.get('page', 1, type=int)
-    per_page = min(request.args.get('per_page', 10, type=int), 100)
+    per_page = min(request.args.get('per_page', 5, type=int), 5)
     return User.to_collection_dict(user.following.select(), page, per_page,
                                    'api.get_following', id=id)
 
