@@ -157,14 +157,23 @@ class User(PaginatedAPIMixin, UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    # def count_banned_words(self, banned_words):
+    #     banned_word_count = 0
+    #     pattern = re.compile(r'\b(' + '|'.join(banned_words) + r')\b', re.IGNORECASE)
+    #
+    #     for post in self.posts:
+    #         banned_word_count += len(pattern.findall(post.body))
+    #
+    #     return banned_word_count
+
     def count_banned_words(self, banned_words):
-        banned_word_count = 0
-        pattern = re.compile(r'\b(' + '|'.join(banned_words) + r')\b', re.IGNORECASE)
+        posts = db.session.scalars(self.posts.select()).all()
 
-        for post in self.posts:
-            banned_word_count += len(pattern.findall(post.body))
+        total_banned_words = 0
+        for post in posts:
+            total_banned_words += sum(post.body.lower().count(word) for word in banned_words)
 
-        return banned_word_count
+        return total_banned_words
 
     def avatar(self, size):
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()

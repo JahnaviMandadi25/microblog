@@ -8,14 +8,12 @@ import time
 
 @pytest.fixture(scope="module")
 def driver():
-    # Setup WebDriver
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()))
     driver.maximize_window()
     yield driver
     driver.quit()
 
 
-# Feature 1: User Registration
 def test_user_register_with_registered_username(driver):
     driver.get("http://127.0.0.1:5000/auth/register")
     driver.find_element(By.ID, "username").send_keys("prajwal")
@@ -27,7 +25,6 @@ def test_user_register_with_registered_username(driver):
     # Find the error message on the page
     invalid_feedback = driver.find_element(By.CLASS_NAME, "invalid-feedback").text
     assert invalid_feedback == "Please use a different username."
-
 
 def test_user_register_with_valid_details(driver):
     driver.get("http://127.0.0.1:5000/auth/register")
@@ -43,3 +40,74 @@ def test_user_register_with_valid_details(driver):
     # Assert that the success alert message is displayed
     alert_message = driver.find_element(By.CLASS_NAME, "alert-info").text
     assert "Congratulations, you are now a registered user!" in alert_message
+
+def test_user_login_and_greet(driver):
+    driver.get("http://127.0.0.1:5000/auth/login")
+
+    driver.find_element(By.ID, "username").send_keys("prajwal")
+    driver.find_element(By.ID, "password").send_keys("Prajwal@123")
+    driver.find_element(By.ID, "submit").click()
+
+    assert driver.current_url == "http://127.0.0.1:5000/index"
+
+    greeting_message = driver.find_element(By.XPATH, "//h1[contains(text(), 'Hi, prajwal')]")
+    assert greeting_message.is_displayed()
+
+def test_post_submission(driver):
+    driver.get("http://127.0.0.1:5000/index")
+    post_content = "This is a test post."
+    driver.find_element(By.ID, "post").send_keys(post_content)
+
+    driver.find_element(By.ID, "submit").click()
+
+    alert = driver.find_element(By.CLASS_NAME, "alert-info").text
+    assert "Your post is now live!" in alert
+
+def test_explore_redirect(driver):
+    driver.get("http://127.0.0.1:5000/index")
+
+    explore_link = driver.find_element(By.CSS_SELECTOR, "a.nav-link[href='/explore']")
+
+    explore_link.click()
+
+    assert driver.current_url == "http://127.0.0.1:5000/explore"
+
+def test_brand_redirect(driver):
+    driver.get("http://127.0.0.1:5000/index")
+
+    explore_link = driver.find_element(By.CSS_SELECTOR, "a.navbar-brand[href='/index']")
+
+    explore_link.click()
+
+    assert driver.current_url == "http://127.0.0.1:5000/index"
+
+
+def test_home_redirect(driver):
+    driver.get("http://127.0.0.1:5000/index")
+
+    explore_link = driver.find_element(By.CSS_SELECTOR, "a.nav-link[href='/index']")
+
+    explore_link.click()
+
+    assert driver.current_url == "http://127.0.0.1:5000/index"
+
+def test_profile_redirect(driver):
+    driver.get("http://127.0.0.1:5000/index")
+
+    explore_link = driver.find_element(By.CSS_SELECTOR, "a.nav-link[href='/user/prajwal']")
+
+    explore_link.click()
+
+    assert driver.current_url == "http://127.0.0.1:5000/user/prajwal"
+
+def test_logout(driver):
+    driver.get("http://127.0.0.1:5000/index")
+
+    explore_link = driver.find_element(By.CSS_SELECTOR, "a.nav-link[href='/auth/logout']")
+
+    explore_link.click()
+
+    assert driver.current_url == "http://127.0.0.1:5000/auth/login?next=%2Findex"
+
+
+
